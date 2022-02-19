@@ -1,0 +1,11 @@
+PyNaCl
+configparser
+discord
+discord-py-interactions
+discord_components
+dnspython
+pymongo
+pytz
+requests
+websockets
+youtube_dl
