@@ -15,10 +15,12 @@ import requests
 
 BOT = discord.ext.commands.Bot(command_prefix=discord.ext.commands.when_mentioned_or("!"), help_command=None,
                                intents=discord.Intents.all())
-DB = pymongo.MongoClient("")
 
-JWR = 496139824500178964
-IDN = 918687493577121884
+DB = pymongo.MongoClient("+://:@.../?=&w=")
+
+JWR, IDN = 496139824500178964, 918687493577121884
+
+GREEN, RED, BLUE, GRAY, LINK = 3, 4, 1, 2, 5
 
 
 def autores():
@@ -48,11 +50,12 @@ async def alerts(name, value):
         print(traceback.format_exc())
 
 
-async def errors(name, value):
+async def errors(name, value, reset=0):
     try:
         await BOT.get_user(JWR).send(embed=discord.Embed(
             title="Ошибка!", color=0xFF0000).add_field(name=name, value=value))
-        os.execl(sys.executable, "python", "artssbots.py", *sys.argv[1:])
+        if reset == 1:
+            os.execl(sys.executable, "python", "artssbots.py", *sys.argv[1:])
     except Exception:
         print(traceback.format_exc())
 
@@ -89,7 +92,8 @@ async def on_ready():
         url = "//4pda.to/forum/dl/post/"
         counts = len(re.findall(rf"{url}(\d*)/(?:[_\-]*[\w]+[_\-]+){{2,}}[\w]+[(\d+)%]*\.(?:jpg|png|gif|jpeg)",
                                 f"{get}"))
-        art = int(DB.artssbots.new.count_documents({})) + int(DB.artssbots.old.count_documents({}))
+        art = int(len(DB.artssbots.server.find_one({"_id": "Новые"})["posts"])) + int(
+            len(DB.artssbots.old.find_one({"_id": "Старые"})["posts"]))
         if counts != 0:
             news = int(re.findall(rf"{url}(\d*)/(?:[_\-]*[\w]+[_\-]+){{2,}}[\w]+[(\d+)%]*\.(?:jpg|png|gif|jpeg)",
                                   f"{get}")[-1][:-3])
@@ -98,22 +102,16 @@ async def on_ready():
                 f"{get}")
             posts2 = re.findall(
                 rf"{url}((?:{news}\d{{3}})/(?:[_\-]*[\w]+[_\-]+){{2,}}[\w]+[(\d+)%]*\.(?:jpg|png|gif|jpeg))", f"{get}")
-            new = len(posts1) + len(posts2)
-            if int(news) > int(DB.artssbots.artssbots.find_one({"_id": "IDS"})["id"]):
-                DB.artssbots.artssbots.update_one({"_id": "IDS"}, {"$set": {"id": int(news)}})
-                i = 0
-                a = int(DB.artssbots.new.count_documents({})) + 1
-                while i < len(posts1):
-                    DB.artssbots.new.insert_one({"_id": int(a), "post": f"{str(posts1[i])}"})
-                    i += 1
-                    a += 1
-                ii = 0
-                b = int(DB.artssbots.new.count_documents({})) + 1
-                while ii < len(posts2):
-                    DB.artssbots.new.insert_one({"_id": int(b), "post": f"{str(posts2[ii])}"})
-                    ii += 1
-                    b += 1
-                await messages(BOT.user, f"{new} артов загружены в БД!\nНа данный момент в базе данных {art} артов!")
+            count = len(posts1) + len(posts2)
+            if int(news) > int(DB.artssbots.server.find_one({"_id": "Прочее"})["ID"]):
+                DB.artssbots.server.update_one({"_id": "Прочее"}, {"$set": {"ID": int(news)}})
+                if len(posts1) != 0:
+                    for post in posts1:
+                        DB.artssbots.server.update_one({"_id": "Новые"}, {"$push": {"posts": post}})
+                if len(posts2) != 0:
+                    for post2 in posts2:
+                        DB.artssbots.server.update_one({"_id": "Новые"}, {"$push": {"posts": post2}})
+                await messages(BOT.user, f"{count} артов загружены в БД!\nНа данный момент в базе данных {art} артов!")
             else:
                 await messages(BOT.user, f"Новые арты не обнаружены!\nНа данный момент в базе данных {art} артов!")
         else:
@@ -121,22 +119,18 @@ async def on_ready():
     except Exception:
         await errors("Загрузка артов:", traceback.format_exc())
     try:
-        iii = 1
         while True:
-            if DB.artssbots.new.find_one({"_id": int(iii)}):
-                await BOT.get_channel(
-                    int(DB.artssbots.artssbots.find_one({"_id": "IDS"})["channel"])).send(
-                    "https://4pda.to/forum/dl/post/" + str(DB.artssbots.new.find_one({"_id": int(iii)})["post"]))
-                DB.artssbots.new.delete_one({"_id": int(iii)})
+            new = DB.artssbots.server.find_one({"_id": "Новые"})
+            if len(new["posts"]) != 0:
+                await BOT.get_channel(int(DB.artssbots.server.find_one({"_id": "Прочее"})["Канал"])).send(
+                    f"https://4pda.to/forum/dl/post/{new['posts'][0]}")
+                DB.artssbots.server.update_one({"_id": "Новые"}, {"$pop": {"posts": -1}})
                 await asyncio.sleep(3600)
-            if int(DB.artssbots.new.count_documents({})) == 0:
-                if DB.artssbots.old.find_one({"_id": int(iii)}):
-                    await BOT.get_channel(
-                        int(DB.artssbots.artssbots.find_one({"_id": "IDS"})["channel"])).send(
-                        "https://4pda.to/forum/dl/post/" + str(DB.artssbots.old.find_one({"_id": int(iii)})["post"]))
-                    DB.artssbots.old.delete_one({"_id": int(iii)})
-                    await asyncio.sleep(3600)
-            iii += 1
+            else:
+                await BOT.get_channel(int(DB.artssbots.server.find_one({"_id": "Прочее"})["Канал"])).send(
+                    f"https://4pda.to/forum/dl/post/{DB.artssbots.old.find_one({'_id': 'Старые'})['posts'][0]}")
+                DB.artssbots.old.update_one({"_id": "Старые"}, {"$pop": {"posts": -1}})
+                await asyncio.sleep(3600)
     except Exception:
         await errors("Отправка артов:", traceback.format_exc())
 
@@ -153,7 +147,7 @@ async def on_message(message):
 @BOT.command(description="0", name="help", help="Показать список всех команд бота", brief="Не применимо", usage="help")
 async def helpmenu(ctx):
     try:
-        if ctx.channel.id == int(DB.artssbots.artssbots.find_one({"_id": "IDS"})["channel"]):
+        if ctx.channel.id == int(DB.artssbots.server.find_one({"_id": "Прочее"})["Канал"]):
             await ctx.message.delete(delay=1)
             e = discord.Embed(title="Список всех команд:", color=ctx.author.color)
             e.set_footer(text=f"В качестве префикса можно использовать знак ! или упоминание бота @{BOT.user.name}")
@@ -194,9 +188,10 @@ async def helpmenu(ctx):
 @BOT.command(description="1", name="arts", help="Посчитать количество артов", brief="Не применимо", usage="arts")
 async def arts(ctx):
     try:
-        if ctx.channel.id == int(DB.artssbots.artssbots.find_one({"_id": "IDS"})["channel"]):
+        if ctx.channel.id == int(DB.artssbots.server.find_one({"_id": "Прочее"})["Канал"]):
             await ctx.message.delete(delay=1)
-            art = int(DB.artssbots.new.count_documents({})) + int(DB.artssbots.old.count_documents({}))
+            art = int(len(DB.artssbots.server.find_one({"_id": "Новые"})["posts"])) + int(
+                len(DB.artssbots.old.find_one({"_id": "Старые"})["posts"]))
             e2 = discord.Embed(title="Количество артов:", color=ctx.author.color,
                                description=f"На данный момент в базе данных {art} артов!")
             e2.set_footer(text="Все права принадлежат пони! Весь мир принадлежит пони!",
@@ -213,7 +208,7 @@ async def arts(ctx):
 @discord.ext.commands.has_permissions(administrator=True)
 async def res(ctx):
     try:
-        if ctx.channel.id == int(DB.artssbots.artssbots.find_one({"_id": "IDS"})["channel"]):
+        if ctx.channel.id == int(DB.artssbots.server.find_one({"_id": "Прочее"})["Канал"]):
             await ctx.message.delete(delay=1)
             await alerts(ctx.author, f"Использовал команду: {ctx.command.name}\nКанал: {ctx.message.channel}")
             await asyncio.sleep(1)
@@ -224,6 +219,6 @@ async def res(ctx):
 
 if __name__ == "__main__":
     try:
-        BOT.run("")
+        BOT.run("..")
     except Exception:
         print(traceback.format_exc())

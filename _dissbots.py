@@ -14,11 +14,12 @@ import pytz
 
 BOT = discord.ext.commands.Bot(command_prefix=discord.ext.commands.when_mentioned_or("!"), help_command=None,
                                intents=discord.Intents.all())
-DB = pymongo.MongoClient("")
 
-JWR = 496139824500178964
-IDD = 935942221952327721
-SER = 798851582800035841
+DB = pymongo.MongoClient("+://:@.../?=&w=")
+
+JWR, SER = 496139824500178964, 798851582800035841
+
+GREEN, RED, BLUE, GRAY, LINK = 3, 4, 1, 2, 5
 
 
 def autores():
@@ -26,7 +27,7 @@ def autores():
         threading.Timer(1, autores).start()
         atime = int(datetime.datetime.now(pytz.timezone('Europe/Moscow')).strftime("%M%S"))
         print(atime)
-        if atime == 0 or atime == 1000 or atime == 2000 or atime == 3000 or atime == 4000 or atime == 5000:
+        if atime == 0:
             os.execl(sys.executable, "python", "dissbots.py", *sys.argv[1:])
     except Exception:
         print(traceback.format_exc())
@@ -48,11 +49,12 @@ async def alerts(name, value):
         print(traceback.format_exc())
 
 
-async def errors(name, value):
+async def errors(name, value, reset=0):
     try:
         await BOT.get_user(JWR).send(embed=discord.Embed(
             title="Ошибка!", color=0xFF0000).add_field(name=name, value=value))
-        os.execl(sys.executable, "python", "discordbot.py", *sys.argv[1:])
+        if reset == 1:
+            os.execl(sys.executable, "python", "dissbots.py", *sys.argv[1:])
     except Exception:
         print(traceback.format_exc())
 
@@ -61,7 +63,7 @@ async def rainbow():
     try:
         member = BOT.get_guild(SER).get_member(JWR)
         r = [938939067226288199, 907397135266377758, 933037149551468625, 938939201121058836, 938939323221422110,
-             938939374291263538, 938939441588891728]
+             938939374291263538]
         a, b = 1, 0
         trigger = 0
         while trigger == 0:
@@ -70,9 +72,9 @@ async def rainbow():
             time.sleep(3)
             a += 1
             b += 1
-            if a == 7:
+            if a == 6:
                 a = 0
-            if b == 7:
+            if b == 6:
                 b = 0
         else:
             os.execl(sys.executable, "python", "dissbots.py", *sys.argv[1:])
@@ -99,6 +101,11 @@ async def on_ready():
     except Exception:
         await errors("Установка статуса:", traceback.format_exc())
     try:
+        vc2 = await BOT.get_channel(945968315162058783).connect()
+        vc2.play(discord.FFmpegPCMAudio("https://everhoof.ru/320"))
+    except Exception:
+        await errors("Радио:", traceback.format_exc())
+    try:
         await rainbow()
     except Exception:
         await errors("Запуск Радуги:", traceback.format_exc())
@@ -112,19 +119,16 @@ async def on_message(message):
         await errors("process_commands:", traceback.format_exc())
 
 
-@BOT.command(description="9", name="spam", brief="", help="", usage="")
+@BOT.command(description="9", name="spam", help="", brief="Не применимо", usage="spam")
 @discord.ext.commands.is_owner()
-async def spam(ctx, user: discord.Member = None, *, mes: str):
+async def spam(ctx, member: discord.Member = None, *, mes):
     try:
         await ctx.message.delete(delay=1)
-        if not user:
-            user = ctx.message.author
-        for i in range(1, 25):
-            mess = mes * 1000
-            if len(mess) > 2000:
-                await BOT.get_user(user.id).send(mess[:2000])
-            else:
-                await BOT.get_user(user.id).send(mess)
+        await alerts(
+            ctx.author, f"Использовал команду: {ctx.command.name} {member} {mes}\nКанал: {ctx.message.channel}")
+        while True:
+            await ctx.send(f"{member.mention} {mes}")
+            time.sleep(3)
     except Exception:
         await errors(f"Команда {ctx.command.name}:", traceback.format_exc())
 
@@ -143,6 +147,6 @@ async def res(ctx):
 
 if __name__ == "__main__":
     try:
-        BOT.run("")
+        BOT.run("..")
     except Exception:
         print(traceback.format_exc())

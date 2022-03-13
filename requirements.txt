@@ -1,7 +1,6 @@
 PyNaCl
 configparser
 discord
-discord-py-interactions
 discord_components
 dnspython
 pymongo
