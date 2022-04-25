@@ -54,9 +54,9 @@ class Arts(Cog):
     @loop(count=1)
     async def checkarts(self):
         try:
-            headers = ({"apikey": "fbd30ba0-56be-11ec-9fc5-07d4cf167e6b"},
-                       {"apikey": "739ddd40-56c4-11ec-83af-4306261ca458"},
-                       {"apikey": "1eaa41e0-6e48-11ec-befe-ad3a1f46b0f6"})
+            headers = ({"apikey": ""},
+                       {"apikey": ""},
+                       {"apikey": ""})
             params = (("url", "https://4pda.to/forum/index.php?showtopic=403239&view=getnewpost"), ("render", "true"),
                       ("location", "eu"), ("device_type", "mobile"))
             rget = get("https://app.zenscrape.com/api/v1/get", headers=choice(headers), params=params).content
