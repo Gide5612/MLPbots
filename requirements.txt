@@ -1,10 +1,9 @@
-PyNaCl
-configparser
+discord-components
 discord
-discord_components
-dnspython
 pymongo
+dnspython
 pytz
 requests
 websockets
-youtube_dl
+PyNaCl
+beautifulsoup4
